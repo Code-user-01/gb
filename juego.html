@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Interactivo para Bebés</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+            background-color: #f0f8ff;
+        }
+        #gameArea {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            background-color: #E6F3FF;
+            cursor: pointer;
+            transition: background-color 1s ease;
+        }
+        .object {
+            position: absolute;
+            transition: none;
+            font-size: 80px;
+            user-select: none;
+            -webkit-user-select: none;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #gameSelector {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #restButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #progressBar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #progressFill {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <select id="gameSelector">
+        <option value="animales">Animales</option>
+        <option value="naturaleza">Naturaleza</option>
+        <option value="colores">Colores</option>
+        <option value="formas">Formas</option>
+        <option value="vehiculos">Vehículos</option>
+        <option value="frutas">Frutas</option>
+        <option value="espacio">Espacio</option>
+    </select>
+    <div id="gameArea"></div>
+    <button id="restButton">Descanso</button>
+    <div id="progressBar"><div id="progressFill"></div></div>
+
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const gameSelector = document.getElementById('gameSelector');
+        const restButton = document.getElementById('restButton');
+        const progressFill = document.getElementById('progressFill');
+
+        const games = {
+            animales: [
+                { emoji: '🐶', sound: 'dog' },
+                { emoji: '🐱', sound: 'cat' },
+                { emoji: '🐮', sound: 'cow' },
+                { emoji: '🐷', sound: 'pig' },
+                { emoji: '🐔', sound: 'chicken' },
+                { emoji: '🐸', sound: 'frog' }
+            ],
+            naturaleza: [
+                { emoji: '🌳', sound: 'tree' },
+                { emoji: '🌻', sound: 'flower' },
+                { emoji: '🌊', sound: 'wave' },
+                { emoji: '🌈', sound: 'rainbow' },
+                { emoji: '☁️', sound: 'cloud' },
+                { emoji: '⛈️', sound: 'thunder' }
+            ],
+            colores: [
+                { emoji: '🔴', sound: 'pop', background: '#FF0000' },
+                { emoji: '🔵', sound: 'pop', background: '#0000FF' },
+                { emoji: '🟢', sound: 'pop', background: '#00FF00' },
+                { emoji: '🟡', sound: 'pop', background: '#FFFF00' },
+                { emoji: '🟣', sound: 'pop', background: '#800080' },
+                { emoji: '🟠', sound: 'pop', background: '#FFA500' }
+            ],
+            formas: [
+                { emoji: '🔶', sound: 'pop' },
+                { emoji: '🔷', sound: 'pop' },
+                { emoji: '⭐', sound: 'twinkle' },
+                { emoji: '🔘', sound: 'pop' },
+                { emoji: '💠', sound: 'pop' },
+                { emoji: '💗', sound: 'heartbeat' }
+            ],
+            vehiculos: [
+                { emoji: '🚗', sound: 'car' },
+                { emoji: '🚂', sound: 'train' },
+                { emoji: '✈️', sound: 'airplane' },
+                { emoji: '🚁', sound: 'helicopter' },
+                { emoji: '🚢', sound: 'ship' },
+                { emoji: '🚲', sound: 'bicycle' }
+            ],
+            frutas: [
+                { emoji: '🍎', sound: 'bite' },
+                { emoji: '🍌', sound: 'peel' },
+                { emoji: '🍇', sound: 'pop' },
+                { emoji: '🍊', sound: 'squeeze' },
+                { emoji: '🍓', sound: 'bite' },
+                { emoji: '🍉', sound: 'slice' }
+            ],
+            espacio: [
+                { emoji: '☀️', sound: 'space' },
+                { emoji: '🌎', sound: 'space' },
+                { emoji: '🌙', sound: 'space' },
+                { emoji: '⭐', sound: 'twinkle' },
+                { emoji: '🪐', sound: 'space' },
+                { emoji: '🚀', sound: 'rocket' }
+            ]
+        };
+
+        let currentGame = games.animales;
+        let isResting = false;
+        let progress = 0;
+        let sounds = {};
+
+        function initSounds() {
+            sounds = {
+                dog: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_dog_bark_single_001_14810.mp3'] }),
+                cat: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_cat_meow_001_14801.mp3'] }),
+                cow: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_cow_moo_001_14812.mp3'] }),
+                pig: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_pig_snort_001_14808.mp3'] }),
+                chicken: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_chicken_single_cluck_002_14807.mp3'] }),
+                frog: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_animals_frog_ribbit_001_14809.mp3'] }),
+                tree: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_tree_fall_slow_crash_001_14939.mp3'] }),
+                flower: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_flowers_blooming_close_up_001_15866.mp3'] }),
+                wave: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_ocean_wave_small_single_001_15162.mp3'] }),
+                rainbow: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_rainbow_light_001_14940.mp3'] }),
+                cloud: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_cloud_flyby_001_14938.mp3'] }),
+                thunder: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_nature_thunder_single_light_rumble_001_15027.mp3'] }),
+                pop: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_impact_balloon_pop_single_001_14715.mp3'] }),
+                twinkle: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_foley_twinkle_bell_chime_001_15061.mp3'] }),
+                heartbeat: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_foley_heartbeat_slow_001_14942.mp3'] }),
+                car: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_car_horn_single_001_15385.mp3'] }),
+                train: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_train_horn_blast_single_001_15391.mp3'] }),
+                airplane: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_airplane_flyby_001_15402.mp3'] }),
+                helicopter: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_helicopter_flyby_001_15403.mp3'] }),
+                ship: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_boat_horn_single_001_15413.mp3'] }),
+                bicycle: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_bicycle_bell_ring_single_001_15412.mp3'] }),
+                bite: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_food_bite_into_apple_single_001_15666.mp3'] }),
+                peel: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_food_peeling_orange_single_001_15660.mp3'] }),
+                squeeze: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_food_squeeze_juice_orange_single_001_15665.mp3'] }),
+                slice: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_food_slice_bread_single_001_15669.mp3'] }),
+                space: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_scifi_space_ambience_001_15671.mp3'] }),
+                rocket: new Howl({ src: ['https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/zapsplat_transport_rocket_launch_001_15673.mp3'] })
+            };
+        }
+
+        gameSelector.addEventListener('change', (e) => {
+            currentGame = games[e.target.value];
+            updateBackground(e.target.value);
+            resetProgress();
+        });
+
+        function updateBackground(game) {
+            const backgrounds = {
+                animales: '#E6F3FF',
+                naturaleza: '#E8F5E9',
+                colores: '#FFF3E0',
+                formas: '#F3E5F5',
+                vehiculos: '#ECEFF1',
+                frutas: '#FFF3E0',
+                espacio: '#000000'
+            };
+            gameArea.style.backgroundColor = backgrounds[game];
+        }
+
+        function createObject(emoji, soundKey, background) {
+            if (isResting || !Object.keys(sounds).length) return;
+
+            const object = document.createElement('div');
+            object.className = 'object';
+            object.textContent = emoji;
+
+            const startX = Math.random() * (gameArea.offsetWidth - 100);
+            const startY = Math.random() * (gameArea.offsetHeight - 100);
+            const endX = Math.random() * (gameArea.offsetWidth - 100);
+            const endY = Math.random() * (gameArea.offsetHeight - 100);
+
+            object.style.left = `${startX}px`;
+            object.style.top = `${startY}px`;
+            if (background) {
+                object.style.background = background;
+                object.style.borderRadius = '50%';
+                object.style.width = '80px';
+                object.style.height = '80px';
+                object.style.display = 'flex';
+                object.style.justifyContent = 'center';
+                object.style.alignItems = 'center';
+            }
+            gameArea.appendChild(object);
+
+            const animation = object.animate([
+                { left: `${startX}px`, top: `${startY}px`, transform: 'scale(0.5)' },
+                { left: `${(startX + endX) / 2}px`, top: `${(startY + endY) / 2}px`, transform: 'scale(1.2)' },
+                { left: `${endX}px`, top: `${endY}px`, transform: 'scale(0.5)' }
+            ], {
+                duration: 5000,
+                easing: 'ease-in-out'
+            });
+
+            animation.onfinish = () => object.remove();
+
+            // Reproducimos el sonido correspondiente
+            sounds[soundKey].play();
+            updateProgress();
+        }
+
+        function triggerRandomObject() {
+            if (!Object.keys(sounds).length) {
+                initSounds(); // Inicializamos los sonidos si aún no se ha hecho
+            }
+
+            const randomObject = currentGame[Math.floor(Math.random() * currentGame.length)];
+            createObject(randomObject.emoji, randomObject.sound, randomObject.background);
+        }
+
+        function updateProgress() {
+            progress += 100 / currentGame.length;
+            if (progress > 100) progress = 100;
+            progressFill.style.width = `${progress}%`;
+
+            if (progress === 100) {
+                celebrateCompletion();
+            }
+        }
+
+        function resetProgress() {
+            progress = 0;
+            progressFill.style.width = '0%';
+        }
+
+        function celebrateCompletion() {
+            gameArea.style.backgroundColor = '#FFD700';
+            setTimeout(() => updateBackground(gameSelector.value), 1000);
+        }
+
+        document.addEventListener('keydown', triggerRandomObject);
+        gameArea.addEventListener('click', triggerRandomObject);
+        gameArea.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            triggerRandomObject();
+        });
+
+        restButton.addEventListener('click', function() {
+            isResting = !isResting;
+            if (isResting) {
+                gameArea.style.backgroundColor = '#F0F0F0';
+                restButton.textContent = 'Reanudar';
+            } else {
+                updateBackground(gameSelector.value);
+                restButton.textContent = 'Descanso';
+            }
+        });
+
+        updateBackground('animales');
+    </script>
+</body>
+</html>
